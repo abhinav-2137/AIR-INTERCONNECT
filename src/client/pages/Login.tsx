@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import logoData from "../assets/logoData";
 import {
   Lock,
   User as UserIcon,
@@ -297,15 +298,15 @@ CREATE POLICY "Insert archive items" ON archive_items FOR INSERT WITH CHECK (aut
       <div className="w-full max-w-md z-10">
         {/* Brand Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-600 text-white shadow-xl shadow-brand-500/30 mb-3 animate-pulse">
-            <span className="text-2xl font-black tracking-tighter">AI</span>
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-2 shadow-2xl shadow-brand-500/40 mb-3">
+            <img src={logoData} alt="CONNEXT Logo" className="w-full h-full object-contain rounded-xl" />
           </div>
           <h1 className="text-3xl font-black tracking-tight text-white flex items-center justify-center gap-2">
-            Air Interconnect
+            CONNEXT
             <Sparkles size={18} className="text-brand-400" />
           </h1>
           <p className="text-slate-400 mt-1.5 text-xs font-medium">
-            Desktop Communication &amp; Team Collaboration Platform
+            Next-Gen Enterprise Desktop Communication &amp; Collaboration Platform
           </p>
         </div>
 

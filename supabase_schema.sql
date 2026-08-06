@@ -1,5 +1,5 @@
 -- ============================================================
--- AIR INTERCONNECT — Complete Database Schema
+-- CONNEXT — Complete Database Schema
 -- Run this in your Supabase Dashboard → SQL Editor
 -- ============================================================
 

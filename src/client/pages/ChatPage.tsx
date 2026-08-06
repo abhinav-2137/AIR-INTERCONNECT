@@ -523,6 +523,21 @@ export const ChatPage: React.FC<ChatPageProps> = ({ selectedChatId, setSelectedC
 
   const startDirectChat = async (targetUser: User) => {
     if (!user) return;
+
+    // Check if chat already exists in local state
+    const existing = chats.find(
+      (c) => c.type === "direct" && c.members.some((m) => m.id === targetUser.id)
+    );
+    if (existing) {
+      setSelectedChatId(existing.id);
+      setActiveChat(existing);
+      loadMessages(existing.id);
+      if (socket) {
+        socket.emit("join_chat", { chatId: existing.id });
+      }
+      return;
+    }
+
     try {
       const response = await fetch(`${serverUrl}/api/chats`, {
         method: "POST",
@@ -535,7 +550,16 @@ export const ChatPage: React.FC<ChatPageProps> = ({ selectedChatId, setSelectedC
       });
       if (response.ok) {
         const chat = await response.json();
+        setChats((prev) => {
+          if (prev.some((c) => c.id === chat.id)) return prev;
+          return [...prev, chat];
+        });
         setSelectedChatId(chat.id);
+        setActiveChat(chat);
+        loadMessages(chat.id);
+        if (socket) {
+          socket.emit("join_chat", { chatId: chat.id });
+        }
       }
     } catch (e) {
       console.error("Direct chat initiation failed:", e);

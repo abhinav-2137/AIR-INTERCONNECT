@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
+import logoData from "../assets/logoData";
 import {
   MessageSquare,
   Radio,
@@ -60,7 +61,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, toggleNo
   return (
     <div className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between select-none shrink-0 text-slate-300">
       {/* Top Section / Nav */}
-      <div className="flex flex-col gap-6 pt-6 px-4">
+      <div className="flex flex-col gap-5 pt-5 px-4">
+        {/* Brand Header */}
+        <div className="flex items-center gap-3 px-2 py-1">
+          <img src={logoData} alt="CONNEXT Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg bg-white/5 p-1 border border-white/10" />
+          <div>
+            <h1 className="font-black text-xl text-white tracking-wider leading-none">CONNEXT</h1>
+            <p className="text-[9px] text-brand-400 font-bold uppercase tracking-widest mt-1">Enterprise Suite</p>
+          </div>
+        </div>
+
         {/* Navigation List */}
         <nav className="flex flex-col gap-1.5">
           <button

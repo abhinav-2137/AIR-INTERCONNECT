@@ -1,23 +1,41 @@
 import { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage } from "electron";
 import path from "path";
+import fs from "fs";
 import { startServer } from "./server";
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 
+function getAppIcon(): Electron.NativeImage {
+  const possiblePaths = [
+    path.join(process.cwd(), "public", "logo.png"),
+    path.join(__dirname, "..", "public", "logo.png"),
+    path.join(__dirname, "client", "logo.png"),
+    path.join(__dirname, "logo.png")
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      return nativeImage.createFromPath(p);
+    }
+  }
+  return nativeImage.createEmpty();
+}
+
 function createTray() {
   if (tray) return;
 
-  // Native status icon for macOS menu bar / Windows tray
-  const icon = nativeImage.createFromNamedImage("NSImageNameStatusAvailable", [16, 16]);
+  const appIcon = getAppIcon();
+  const trayIcon = !appIcon.isEmpty()
+    ? appIcon.resize({ width: 16, height: 16 })
+    : nativeImage.createFromNamedImage("NSImageNameStatusAvailable", [16, 16]);
 
-  tray = new Tray(icon);
-  tray.setToolTip("AIR INTERCONNECT — Active in Background (Receiving Desktop Notifications)");
+  tray = new Tray(trayIcon);
+  tray.setToolTip("CONNEXT — Active in Background (Receiving Desktop Notifications)");
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: "AIR INTERCONNECT",
+      label: "CONNEXT",
       enabled: false
     },
     { type: "separator" },
@@ -37,7 +55,7 @@ function createTray() {
     },
     { type: "separator" },
     {
-      label: "Quit AIR INTERCONNECT",
+      label: "Quit CONNEXT",
       click: () => {
         isQuitting = true;
         app.quit();
@@ -56,8 +74,6 @@ function createTray() {
   });
 }
 
-import fs from "fs";
-
 function ensureIsolatedUserDataPath() {
   const userDataPath = app.getPath("userData");
   console.log("[First-Run Setup] Isolated Platform User Data Path:", userDataPath);
@@ -75,6 +91,12 @@ async function createWindow() {
   // Verify and resolve platform userData path (%APPDATA% on Win, ~/Library/Application Support on macOS)
   ensureIsolatedUserDataPath();
 
+  // Set macOS dock icon
+  const appIcon = getAppIcon();
+  if (process.platform === "darwin" && !appIcon.isEmpty() && app.dock) {
+    app.dock.setIcon(appIcon);
+  }
+
   // Start Express/Socket.io backend server
   try {
     await startServer(serverPort);
@@ -90,6 +112,7 @@ async function createWindow() {
     minWidth: 800,
     minHeight: 600,
     frame: false, // frameless custom title bar
+    icon: !appIcon.isEmpty() ? appIcon : undefined,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -189,7 +212,7 @@ ipcMain.on(
 
       if (Notification.isSupported()) {
         const notifOptions: Electron.NotificationConstructorOptions = {
-          title: data.title || "AIR INTERCONNECT",
+          title: data.title || "CONNEXT",
           body: data.body || "New Message",
           silent: false
         };
@@ -244,12 +267,12 @@ ipcMain.on("update-unread-count", (_event, count: number) => {
   // 3. System Tray tooltip & menu bar title
   if (tray) {
     if (safeCount > 0) {
-      tray.setToolTip(`AIR INTERCONNECT — ${safeCount} unread notification${safeCount > 1 ? "s" : ""}`);
+      tray.setToolTip(`CONNEXT — ${safeCount} unread notification${safeCount > 1 ? "s" : ""}`);
       if (process.platform === "darwin") {
         tray.setTitle(` ${safeCount}`);
       }
     } else {
-      tray.setToolTip("AIR INTERCONNECT — Active in Background (Receiving Desktop Notifications)");
+      tray.setToolTip("CONNEXT — Active in Background (Receiving Desktop Notifications)");
       if (process.platform === "darwin") {
         tray.setTitle("");
       }

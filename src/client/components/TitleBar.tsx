@@ -1,5 +1,6 @@
 import React from "react";
 import { Minus, Square, X } from "lucide-react";
+import logoData from "../assets/logoData";
 
 export const TitleBar: React.FC = () => {
   const isElectron = !!(window as any).electron;
@@ -19,8 +20,9 @@ export const TitleBar: React.FC = () => {
   return (
     <div className="h-8 bg-primary dark:bg-primary-container text-on-primary select-none drag flex items-center justify-between px-4 z-[100] relative border-b border-primary-container/10 shrink-0">
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-label-caps tracking-widest uppercase text-primary-fixed-dim opacity-70">
-          Bureau Ledger Shell
+        <img src={logoData} alt="CONNEXT" className="w-4 h-4 object-contain" />
+        <span className="text-[10px] font-bold tracking-widest uppercase text-white/90">
+          CONNEXT Desktop
         </span>
       </div>
       

@@ -115,13 +115,20 @@ export const triggerOsNotification = (
 };
 
 // Web Audio API Synth Chime
+// Web Audio API Synth Chime
 export const playNotificationChime = (isMuted: boolean = false, isUrgent: boolean = false) => {
   if (isMuted) return;
   try {
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const audioCtx = new AudioContextClass();
+
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
 
     if (isUrgent) {
-      // Urgent double-bell alarm for calendar
+      // Urgent triple-bell alarm for calendar
       [0, 0.22, 0.44].forEach((offset) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -129,35 +136,31 @@ export const playNotificationChime = (isMuted: boolean = false, isUrgent: boolea
         gain.connect(audioCtx.destination);
         osc.type = "sine";
         osc.frequency.setValueAtTime(880, audioCtx.currentTime + offset);
-        gain.gain.setValueAtTime(0.12, audioCtx.currentTime + offset);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime + offset);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + offset + 0.3);
         osc.start(audioCtx.currentTime + offset);
         osc.stop(audioCtx.currentTime + offset + 0.3);
       });
     } else {
-      // Pleasant non-intrusive dual-tone chime (C5 -> E5)
-      const osc1 = audioCtx.createOscillator();
-      const gain1 = audioCtx.createGain();
-      osc1.connect(gain1);
-      gain1.connect(audioCtx.destination);
-      osc1.type = "sine";
-      osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-      gain1.gain.setValueAtTime(0.08, audioCtx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
-      osc1.start(audioCtx.currentTime);
-      osc1.stop(audioCtx.currentTime + 0.35);
+      // Pleasant bright 3-note ascending notification chime (C5 -> E5 -> G5)
+      const notes = [
+        { freq: 523.25, time: 0, duration: 0.25, vol: 0.18 },    // C5
+        { freq: 659.25, time: 0.1, duration: 0.25, vol: 0.18 },  // E5
+        { freq: 783.99, time: 0.2, duration: 0.35, vol: 0.22 }   // G5
+      ];
 
-      const osc2 = audioCtx.createOscillator();
-      const gain2 = audioCtx.createGain();
-      osc2.connect(gain2);
-      gain2.connect(audioCtx.destination);
-      osc2.type = "sine";
-      osc2.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.12); // E5
-      gain2.gain.setValueAtTime(0);
-      gain2.gain.setValueAtTime(0.08, audioCtx.currentTime + 0.12);
-      gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.47);
-      osc2.start(audioCtx.currentTime + 0.12);
-      osc2.stop(audioCtx.currentTime + 0.47);
+      notes.forEach(({ freq, time, duration, vol }) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + time);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime + time);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + time + duration);
+        osc.start(audioCtx.currentTime + time);
+        osc.stop(audioCtx.currentTime + time + duration);
+      });
     }
   } catch (error) {
     console.error("Web Audio chime failed to play:", error);
@@ -332,17 +335,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      // 3. Check if chat is currently open and window is focused
+      const isBroadcast = notif.messagePreview?.startsWith("[Broadcast]") || notif.type === "broadcast";
+
+      // 3. Play notification sound (regular chime or prominent broadcast chime)
+      playNotificationChime(isAppMuted, Boolean(isBroadcast));
+
+      // 4. Check if chat is currently open and window is focused
       const isChatOpenAndFocused =
         isWindowFocused && activePage === "chat" && activeChatId === notif.chatId;
 
       if (isChatOpenAndFocused) {
-        // User is actively looking at this conversation right now. No toast/sound needed.
+        // User is actively looking at this conversation right now — sound plays, no toast popup needed.
         return;
       }
 
-      // 4. Trigger In-App Toast
-      const isBroadcast = notif.messagePreview?.startsWith("[Broadcast]");
+      // 5. Trigger In-App Toast
       const notifType = isBroadcast ? "broadcast" : (notif.type || "message");
 
       const newToast: ToastItem = {
@@ -368,9 +375,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         fadeToast(notif.id);
       }, 19650);
 
-      // 5. Native OS notification vs In-App Sound
+      // 6. Native OS desktop notification (when window is minimized or unfocused)
       if (!isWindowFocused) {
-        // Window minimized/unfocused/background -> Fire native OS notification
         const notifTitle = isBroadcast
           ? `Broadcast from ${notif.senderName}`
           : notif.senderName;
@@ -384,9 +390,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           notifSubtitle,
           notif.chatId // tag for OS notification grouping per conversation
         );
-      } else {
-        // Window focused but user is on another chat/page -> Play in-app sound (unless app is muted)
-        playNotificationChime(isAppMuted, false);
       }
     },
     [isDuplicateNotification, isGlobalDnd, user, mutedChats, isWindowFocused, activePage, activeChatId, isAppMuted, fadeToast]

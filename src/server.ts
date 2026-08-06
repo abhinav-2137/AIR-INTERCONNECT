@@ -500,6 +500,25 @@ export function startServer(port: number): Promise<{ server: http.Server; io: So
         }
       });
 
+      app.post("/api/admin/clear-database", verifyAdmin, async (req, res) => {
+        try {
+          // Erase all application content from Supabase tables
+          await supabaseAdmin.from("messages").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+          await supabaseAdmin.from("notifications").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+          await supabaseAdmin.from("calendar_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+          await supabaseAdmin.from("archive_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+          await supabaseAdmin.from("chat_members").delete().neq("chat_id", "00000000-0000-0000-0000-000000000000");
+          await supabaseAdmin.from("chats").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+          io.emit("database_cleared", { timestamp: new Date().toISOString() });
+
+          res.json({ success: true, message: "All application data from Supabase database has been successfully erased." });
+        } catch (err: any) {
+          console.error("Error clearing database data:", err);
+          res.status(500).json({ error: err.message || "Failed to clear database data." });
+        }
+      });
+
       // 4. Chat Endpoints
       app.get("/api/chats", async (req, res) => {
         const userId = req.query.userId as string;
@@ -632,7 +651,56 @@ export function startServer(port: number): Promise<{ server: http.Server; io: So
                   .maybeSingle();
 
                 if (existingDirectChat) {
-                  return res.json(existingDirectChat);
+                  // Fetch participants
+                  const { data: memberRows } = await supabaseAdmin
+                    .from("chat_members")
+                    .select("user_id")
+                    .eq("chat_id", existingDirectChat.id);
+
+                  const memberIds = (memberRows || []).map((m) => m.user_id);
+                  const { data: members } = await supabaseAdmin
+                    .from("profiles")
+                    .select("id, username, display_name, avatar_url, status, last_seen")
+                    .in("id", memberIds);
+
+                  // Fetch last message
+                  const { data: lastMsgArr } = await supabaseAdmin
+                    .from("messages")
+                    .select("*")
+                    .eq("chat_id", existingDirectChat.id)
+                    .order("timestamp", { ascending: false })
+                    .limit(1);
+
+                  const lastMsg = lastMsgArr && lastMsgArr.length > 0 ? lastMsgArr[0] : null;
+
+                  const fullDirectChat = {
+                    id: existingDirectChat.id,
+                    name: existingDirectChat.name,
+                    type: existingDirectChat.type,
+                    avatarUrl: existingDirectChat.avatar_url,
+                    createdAt: existingDirectChat.created_at,
+                    members: (members || []).map((m) => ({
+                      id: m.id,
+                      username: m.username,
+                      displayName: m.display_name,
+                      avatarUrl: m.avatar_url,
+                      status: m.status,
+                      lastSeen: m.last_seen
+                    })),
+                    lastMessage: lastMsg
+                      ? {
+                          id: lastMsg.id,
+                          content: lastMsg.content,
+                          type: lastMsg.type,
+                          senderId: lastMsg.sender_id,
+                          timestamp: lastMsg.timestamp,
+                          fileName: lastMsg.file_name,
+                          fileSize: lastMsg.file_size
+                        }
+                      : null
+                  };
+
+                  return res.json(fullDirectChat);
                 }
               }
             }
@@ -1171,6 +1239,39 @@ export function startServer(port: number): Promise<{ server: http.Server; io: So
                 isBroadcast: true
               };
               io.to(`chat_${chatId}`).emit("message_received", savedMessage);
+              io.to(`user_${recipientId}`).emit("message_received", savedMessage);
+
+              const previewText = "[Broadcast] " + (newMsg.content || (newMsg.type === "image" ? "[Image]" : newMsg.type === "pdf" ? "[PDF]" : "[File]"));
+
+              const { data: notifRow } = await supabaseAdmin
+                .from("notifications")
+                .insert({
+                  user_id: recipientId,
+                  sender_name: sender?.display_name || "Bureau Admin",
+                  chat_name: "Broadcast Channel",
+                  message_preview: previewText,
+                  chat_id: chatId,
+                  is_read: false
+                })
+                .select()
+                .single();
+
+              if (notifRow) {
+                const notifLog = {
+                  id: notifRow.id,
+                  userId: recipientId,
+                  senderName: sender?.display_name || "Bureau Admin",
+                  chatName: "Broadcast Channel",
+                  messagePreview: previewText,
+                  timestamp: notifRow.timestamp,
+                  isRead: false,
+                  chatId: chatId,
+                  type: "broadcast",
+                  fileName: newMsg.file_name || null
+                };
+                io.to(`user_${recipientId}`).emit("notification_logged", notifLog);
+              }
+
               results.push(savedMessage);
             }
           }

@@ -39,6 +39,8 @@ export const AdminPage: React.FC = () => {
 
   // Modal / Form fields
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null); // null = add mode
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
@@ -224,6 +226,38 @@ export const AdminPage: React.FC = () => {
     }
   };
 
+  // Clear Database Data handler
+  const handleClearDatabase = async () => {
+    if (!user || user.role !== "admin") return;
+    setIsClearing(true);
+    setSuccessMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`${serverUrl}/api/admin/clear-database`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Id": user.id
+        }
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(responseData.error || "Failed to erase database data.");
+      } else {
+        setSuccessMessage(responseData.message || "All application data has been successfully erased from the database.");
+        setShowClearConfirmModal(false);
+        loadUsersList();
+      }
+    } catch (e) {
+      setErrorMessage("Network error while communicating with server.");
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const getStatusDotColor = (status: string) => {
     switch (status) {
       case "online":
@@ -294,6 +328,23 @@ export const AdminPage: React.FC = () => {
             <span className="font-header-title text-2xl italic text-primary">
               {usersList.filter((u) => u.status === "online").length} active
             </span>
+          </div>
+
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded p-4 flex flex-col gap-2 mt-4">
+            <span className="font-label-caps text-[9px] text-rose-700 uppercase tracking-wider font-bold flex items-center gap-1">
+              <ShieldAlert size={12} />
+              Danger Zone
+            </span>
+            <p className="text-[11px] text-rose-800 leading-snug">
+              Erase all app messages, chats, events & archives from Supabase.
+            </p>
+            <button
+              onClick={() => setShowClearConfirmModal(true)}
+              className="mt-1 w-full py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white font-ui-label text-xs rounded transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <Trash2 size={13} />
+              <span>Clear Database Data</span>
+            </button>
           </div>
         </div>
       </aside>
@@ -579,6 +630,86 @@ export const AdminPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </>
+      )}
+
+      {/* CLEAR DATABASE CONFIRMATION MODAL */}
+      {showClearConfirmModal && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-[2px]"
+            onClick={() => !isClearing && setShowClearConfirmModal(false)}
+          ></div>
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md w-full bg-paper border border-rose-200 shadow-2xl rounded-xl overflow-hidden z-50 animate-slide-in">
+            <div className="bg-rose-500/10 p-5 border-b border-rose-200 flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-rose-500/20 text-rose-600 flex items-center justify-center shrink-0">
+                  <ShieldAlert size={20} />
+                </div>
+                <div>
+                  <p className="font-label-caps text-caption text-rose-700 uppercase tracking-widest mb-0.5">
+                    System Maintenance
+                  </p>
+                  <h3 className="font-header-title text-xl text-rose-800 font-bold">
+                    Clear Database Data?
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isClearing}
+                className="text-ink-muted hover:text-ink disabled:opacity-50"
+                onClick={() => setShowClearConfirmModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-ink-muted leading-relaxed">
+                This action will <strong className="text-rose-600">permanently erase all application data</strong> stored in the Supabase database, including:
+              </p>
+              <ul className="text-xs text-ink space-y-1 list-disc pl-5 font-medium">
+                <li>All chat messages & conversation histories</li>
+                <li>All chat rooms and group memberships</li>
+                <li>All calendar events</li>
+                <li>All system notifications</li>
+                <li>All stored archive items</li>
+              </ul>
+              <p className="text-[11px] text-amber-800 bg-amber-500/10 border border-amber-500/20 p-3 rounded font-semibold">
+                ⚠️ User accounts and login credentials will be retained so administrators and team members can continue using the application.
+              </p>
+
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  disabled={isClearing}
+                  onClick={() => setShowClearConfirmModal(false)}
+                  className="px-4 py-2 border border-line-hairline rounded font-ui-label text-xs text-ink hover:bg-sidebar-bone transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isClearing}
+                  onClick={handleClearDatabase}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded font-ui-label text-xs font-semibold transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isClearing ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent animate-spin rounded-full"></span>
+                      <span>Erasing Database...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      <span>Yes, Erase All Data</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}
