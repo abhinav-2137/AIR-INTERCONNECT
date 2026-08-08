@@ -27,8 +27,8 @@
       "!**/dev-data/**"
     ],
     "win": {
-      "target": "portable",
-      "icon": "build/icon.ico"
+      "target": "nsis",
+      "icon": "build/logo.png"
     },
     "nsis": {
       "oneClick": false,
@@ -36,7 +36,7 @@
     },
     "mac": {
       "target": "dmg",
-      "icon": "build/icon.icns",
+      "icon": "build/logo.png",
       "category": "public.app-category.business"
     },
     "dmg": {

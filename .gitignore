@@ -1,9 +1,9 @@
 node_modules/
 dist/
-build/
 tools/
 .DS_Store
 *.dmg
 *.exe
 *.zip
 *.asar
+*.blockmap
