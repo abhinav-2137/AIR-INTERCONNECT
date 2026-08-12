@@ -1,6 +1,6 @@
 {
   "name": "air-interconnect",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "CONNEXT — Next-Gen Enterprise Desktop Communication & Collaboration Platform",
   "main": "dist/main.js",
   "scripts": {
