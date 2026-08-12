@@ -1,5 +1,5 @@
 {
-  "name": "connext",
+  "name": "air-interconnect",
   "version": "1.0.0",
   "description": "CONNEXT — Next-Gen Enterprise Desktop Communication & Collaboration Platform",
   "main": "dist/main.js",
@@ -10,24 +10,26 @@
     "build:frontend": "vite build",
     "build:electron": "tsc",
     "build": "npm run build:frontend && npm run build:electron",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "npm run build && electron-builder --mac",
-    "build:all": "npm run build && electron-builder -mw",
     "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:all": "npm run build && electron-builder -mw",
     "test:reset-db": "node tools/reset-db.js",
     "start": "electron ."
   },
   "build": {
-    "appId": "abhinavsaxena2137@iloud.com",
-    "productName": "AIR Connect",
+    "appId": "com.yourname.airinterconnect",
+    "productName": "Air Interconnect",
     "files": [
       "dist/**/*",
+      "!**/.env",
+      "!**/.env.*",
       "!**/*.db",
       "!**/*.sqlite",
       "!**/dev-data/**"
     ],
     "win": {
-      "target": "nsis",
+      "target": ["nsis", "portable"],
       "icon": "build/logo.png"
     },
     "nsis": {
@@ -35,9 +37,9 @@
       "allowToChangeInstallationDirectory": true
     },
     "mac": {
-      "target": "dmg",
+      "target": ["dmg", "zip"],
       "icon": "build/logo.png",
-      "category": "public.app-category.business"
+      "category": "public.app-category.utilities"
     },
     "dmg": {
       "contents": [
