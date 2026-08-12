@@ -8,3 +8,5 @@ tools/
 *.zip
 *.asar
 *.blockmap
+secrets.txt
+

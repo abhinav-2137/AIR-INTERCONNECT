@@ -8,7 +8,7 @@
     "dev:electron": "tsc && electron .",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
     "build:frontend": "vite build",
-    "build:electron": "tsc",
+    "build:electron": "node scripts/generate-env-config.js && tsc",
     "build": "npm run build:frontend && npm run build:electron",
     "dist": "npm run build && electron-builder",
     "dist:mac": "npm run build && electron-builder --mac",
@@ -39,7 +39,8 @@
     "mac": {
       "target": ["dmg", "zip"],
       "icon": "build/logo.png",
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "identity": null
     },
     "dmg": {
       "contents": [
