@@ -23,12 +23,17 @@
     "appId": "com.yourname.airinterconnect",
     "productName": "Air Interconnect",
     "files": [
-      "dist/**/*",
+      "dist/client/**/*",
+      "dist/*.js",
       "!**/.env",
       "!**/.env.*",
       "!**/*.db",
       "!**/*.sqlite",
-      "!**/dev-data/**"
+      "!**/dev-data/**",
+      "!**/*.dmg",
+      "!**/*.zip",
+      "!**/*.exe",
+      "!**/*.blockmap"
     ],
     "extraResources": [
       {
@@ -42,7 +47,16 @@
       "repo": "AIR-INTERCONNECT"
     },
     "win": {
-      "target": ["nsis", "portable"],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
       "icon": "build/logo.png"
     },
     "nsis": {
