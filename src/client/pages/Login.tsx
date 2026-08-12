@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { SUPABASE_URL } from "../lib/supabase";
 import logoData from "../assets/logoData";
 import {
   Lock,
@@ -27,6 +28,11 @@ export const Login: React.FC = () => {
   const { login, signUp, hasAdmin, needsSchema, checkSystemStatus, setupMasterAdmin } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [copiedSql, setCopiedSql] = useState(false);
+
+  // Extract project ref from Supabase URL (e.g. https://<ref>.supabase.co)
+  const supabaseProjectId = SUPABASE_URL
+    ? new URL(SUPABASE_URL).hostname.split(".")[0]
+    : "";
 
   const rawSqlSchema = `-- AIR INTERCONNECT — Supabase Schema
 CREATE TABLE IF NOT EXISTS profiles (
@@ -350,7 +356,7 @@ CREATE POLICY "Insert archive items" ON archive_items FOR INSERT WITH CHECK (aut
                   </button>
 
                   <a
-                    href="https://supabase.com/dashboard/project/ageeohsfcedragprhnso/sql/new"
+                    href={`https://supabase.com/dashboard/project/${supabaseProjectId}/sql/new`}
                     target="_blank"
                     rel="noreferrer"
                     className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-white/10 transition-all flex items-center gap-1.5"
