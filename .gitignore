@@ -9,4 +9,6 @@ tools/
 *.asar
 *.blockmap
 secrets.txt
+build/env.generated.json
+
 

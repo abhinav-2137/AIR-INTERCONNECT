@@ -7,13 +7,15 @@
     "dev:frontend": "vite",
     "dev:electron": "tsc && electron .",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
+    "generate-env": "node scripts/generate-env.js",
     "build:frontend": "vite build",
-    "build:electron": "node scripts/generate-env-config.js && tsc",
+    "build:electron": "npm run generate-env && tsc",
     "build": "npm run build:frontend && npm run build:electron",
     "dist": "npm run build && electron-builder",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:win": "npm run build && electron-builder --win",
     "dist:all": "npm run build && electron-builder -mw",
+    "release": "npm run build && electron-builder --mac --win --publish always",
     "test:reset-db": "node tools/reset-db.js",
     "start": "electron ."
   },
@@ -28,6 +30,17 @@
       "!**/*.sqlite",
       "!**/dev-data/**"
     ],
+    "extraResources": [
+      {
+        "from": "build/env.generated.json",
+        "to": "env.generated.json"
+      }
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "abhinav-2137",
+      "repo": "AIR-INTERCONNECT"
+    },
     "win": {
       "target": ["nsis", "portable"],
       "icon": "build/logo.png"
