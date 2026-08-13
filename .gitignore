@@ -10,5 +10,7 @@ tools/
 *.blockmap
 secrets.txt
 build/env.generated.json
+air-interconnect-backup/
+
 
 
