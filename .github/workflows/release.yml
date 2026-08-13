@@ -18,8 +18,8 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       CSC_LINK: ${{ secrets.MAC_CERTIFICATE_P12_BASE64 }}
       CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -39,6 +39,11 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Compile TypeScript
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Build & publish macOS app
@@ -52,8 +57,8 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       WIN_CSC_LINK: ${{ secrets.WIN_CERTIFICATE_PFX_BASE64 }}
       WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CERTIFICATE_PASSWORD }}
     steps:
@@ -70,6 +75,11 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Compile TypeScript
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Build & publish Windows app
