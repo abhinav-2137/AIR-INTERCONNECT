@@ -157,14 +157,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ selectedChatId, setSelectedC
   useEffect(() => {
     loadChats();
     loadUsers();
-
-    // Load muted chats list
-    const savedMutes = localStorage.getItem(`muted_chats_${user?.id}`);
-    if (savedMutes) {
-      try {
-        setMutedChats(JSON.parse(savedMutes));
-      } catch (e) {}
-    }
   }, [user]);
 
   // Load messages when selectedChatId changes
@@ -178,10 +170,31 @@ export const ChatPage: React.FC<ChatPageProps> = ({ selectedChatId, setSelectedC
           socket.emit("join_chat", { chatId: chat.id });
         }
       } else {
-        loadMessages(selectedChatId);
-        if (socket) {
-          socket.emit("join_chat", { chatId: selectedChatId });
-        }
+        // Chat not in local state yet — fetch its metadata from the server
+        // so the panel can render (activeChat must be set for the right panel to show)
+        const fetchAndActivateChat = async () => {
+          try {
+            const res = await fetch(`${serverUrl}/api/chats?userId=${user?.id}`);
+            if (res.ok) {
+              const allChats: Chat[] = await res.json();
+              const found = allChats.find((c) => c.id === selectedChatId);
+              if (found) {
+                setChats((prev) => {
+                  if (prev.some((c) => c.id === found.id)) return prev;
+                  return [...prev, found];
+                });
+                setActiveChat(found);
+              }
+            }
+          } catch (e) {
+            console.error("Failed to fetch chat metadata for selectedChatId:", selectedChatId, e);
+          }
+          loadMessages(selectedChatId);
+          if (socket) {
+            socket.emit("join_chat", { chatId: selectedChatId });
+          }
+        };
+        fetchAndActivateChat();
       }
     } else {
       setActiveChat(null);
@@ -565,6 +578,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ selectedChatId, setSelectedC
         if (socket) {
           socket.emit("join_chat", { chatId: chat.id });
         }
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        console.error("startDirectChat: server returned error", response.status, errData);
       }
     } catch (e) {
       console.error("Direct chat initiation failed:", e);
