@@ -56,6 +56,93 @@ export function startServer(port: number): Promise<{ server: http.Server; io: So
         io.emit("status_change", { userId, status, lastSeen });
       };
 
+      // Supabase Realtime subscriptions on supabaseAdmin (using ws transport in main process)
+      try {
+        const realtimeChannel = supabaseAdmin.channel("app-realtime-sub");
+        realtimeChannel
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (payload) => {
+            console.log("[Realtime] Message inserted:", payload.new.id);
+            try {
+              const msg = payload.new;
+              const { data: sender } = await supabaseAdmin
+                .from("profiles")
+                .select("display_name, avatar_url")
+                .eq("id", msg.sender_id)
+                .maybeSingle();
+
+              const savedMsg = {
+                id: msg.id,
+                chatId: msg.chat_id,
+                senderId: msg.sender_id,
+                senderName: sender?.display_name || "Unknown",
+                senderAvatar: sender?.avatar_url || null,
+                content: msg.content,
+                type: msg.type,
+                filePath: msg.file_path,
+                fileName: msg.file_name,
+                fileSize: msg.file_size,
+                timestamp: msg.timestamp,
+                isBroadcast: msg.is_broadcast,
+                isEdited: msg.is_edited
+              };
+              io.to(`chat_${msg.chat_id}`).emit("message_received", savedMsg);
+            } catch (err) {
+              console.error("[Realtime] Error processing message insert:", err);
+            }
+          })
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
+            console.log("[Realtime] Notification inserted:", payload.new.id);
+            const notif = payload.new;
+            const mapped = {
+              id: notif.id,
+              userId: notif.user_id,
+              senderName: notif.sender_name,
+              chatName: notif.chat_name,
+              messagePreview: notif.message_preview,
+              timestamp: notif.timestamp,
+              isRead: notif.is_read,
+              chatId: notif.chat_id,
+              type: notif.type || "message"
+            };
+            io.to(`user_${notif.user_id}`).emit("notification_logged", mapped);
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "calendar_events" }, (payload: any) => {
+            console.log("[Realtime] Calendar event changed:", payload.eventType, payload.new || payload.old);
+            if (payload.eventType === "INSERT") {
+              const evt = payload.new;
+              io.emit("calendar_event_created", {
+                id: evt.id,
+                title: evt.title,
+                description: evt.description,
+                startTime: evt.start_time,
+                endTime: evt.end_time,
+                creatorId: evt.creator_id,
+                attendees: evt.attendees || [],
+                color: evt.color
+              });
+            } else if (payload.eventType === "UPDATE") {
+              const evt = payload.new;
+              io.emit("calendar_event_updated", {
+                id: evt.id,
+                title: evt.title,
+                description: evt.description,
+                startTime: evt.start_time,
+                endTime: evt.end_time,
+                creatorId: evt.creator_id,
+                attendees: evt.attendees || [],
+                color: evt.color
+              });
+            } else if (payload.eventType === "DELETE") {
+              io.emit("calendar_event_deleted", { eventId: payload.old.id });
+            }
+          })
+          .subscribe((status, err) => {
+            console.log("[Realtime Subscription Status]:", status, err ? err : "");
+          });
+      } catch (rtErr) {
+        console.error("Failed to initialize Realtime subscriptions:", rtErr);
+      }
+
       // Realtime connections handler
       io.on("connection", (socket) => {
         console.log("Socket client connected:", socket.id);

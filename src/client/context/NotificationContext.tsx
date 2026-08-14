@@ -247,6 +247,45 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [user]);
 
+  // Global 30-minute calendar event reminder polling
+  const [dismissedCalendarAlerts, setDismissedCalendarAlerts] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) return;
+
+    const checkUpcomingEvents = async () => {
+      try {
+        const response = await fetch(`${serverUrl}/api/calendar`);
+        if (response.ok) {
+          const eventsList = await response.json();
+          const now = new Date();
+          for (const evt of eventsList) {
+            if (dismissedCalendarAlerts.has(evt.id)) continue;
+            const startTime = new Date(evt.startTime);
+            const diffMs = startTime.getTime() - now.getTime();
+            const diffMin = diffMs / (1000 * 60);
+            if (diffMin > 0 && diffMin <= 30) {
+              setDismissedCalendarAlerts((prev) => new Set(prev).add(evt.id));
+              triggerCalendarNotification({
+                id: evt.id,
+                title: evt.title,
+                description: evt.description,
+                startTime: evt.startTime,
+                endTime: evt.endTime
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Global calendar check error:", e);
+      }
+    };
+
+    checkUpcomingEvents();
+    const interval = setInterval(checkUpcomingEvents, 30000);
+    return () => clearInterval(interval);
+  }, [user, serverUrl, dismissedCalendarAlerts]);
+
   const toggleMuteChat = (chatId: string) => {
     if (!user) return;
     setMutedChats((prev) => {
@@ -375,22 +414,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         fadeToast(notif.id);
       }, 19650);
 
-      // 6. Native OS desktop notification (when window is minimized or unfocused)
-      if (!isWindowFocused) {
-        const notifTitle = isBroadcast
-          ? `Broadcast from ${notif.senderName}`
-          : notif.senderName;
-        const notifSubtitle = notif.chatName || (isBroadcast ? "Broadcast Channel" : "Direct Message");
+      // 6. Native OS desktop notification
+      const notifTitle = isBroadcast
+        ? `Broadcast from ${notif.senderName}`
+        : notif.senderName;
+      const notifSubtitle = notif.chatName || (isBroadcast ? "Broadcast Channel" : "Direct Message");
 
-        triggerOsNotification(
-          notifTitle,
-          notif.messagePreview,
-          notif.chatId,
-          "chat",
-          notifSubtitle,
-          notif.chatId // tag for OS notification grouping per conversation
-        );
-      }
+      triggerOsNotification(
+        notifTitle,
+        notif.messagePreview,
+        notif.chatId,
+        "chat",
+        notifSubtitle,
+        notif.chatId // tag for OS notification grouping per conversation
+      );
     },
     [isDuplicateNotification, isGlobalDnd, user, mutedChats, isWindowFocused, activePage, activeChatId, isAppMuted, fadeToast]
   );

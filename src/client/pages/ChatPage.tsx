@@ -177,6 +177,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ selectedChatId, setSelectedC
         if (socket) {
           socket.emit("join_chat", { chatId: chat.id });
         }
+      } else {
+        loadMessages(selectedChatId);
+        if (socket) {
+          socket.emit("join_chat", { chatId: selectedChatId });
+        }
       }
     } else {
       setActiveChat(null);

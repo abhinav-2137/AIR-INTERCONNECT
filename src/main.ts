@@ -205,11 +205,6 @@ ipcMain.on(
     }
   ) => {
     try {
-      // Avoid firing native popup if the app window is actively focused and visible
-      if (mainWindow && mainWindow.isFocused() && mainWindow.isVisible() && !mainWindow.isMinimized()) {
-        return;
-      }
-
       if (Notification.isSupported()) {
         const notifOptions: Electron.NotificationConstructorOptions = {
           title: data.title || "CONNEXT",
@@ -285,6 +280,9 @@ app.on("before-quit", () => {
 });
 
 app.whenReady().then(() => {
+  if (process.platform === "win32") {
+    app.setAppUserModelId("com.yourname.airinterconnect");
+  }
   createWindow();
 
   app.on("activate", () => {
